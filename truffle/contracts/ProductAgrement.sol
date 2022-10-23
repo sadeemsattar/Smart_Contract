@@ -1,6 +1,7 @@
-// SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.9.0;
 
+// SPDX-License-Identifier: MIT
+
+pragma solidity >=0.4.22 <0.9.0;
 
 contract ProductAgrement{
 
@@ -13,7 +14,6 @@ contract ProductAgrement{
     }
 
     mapping (address => Product[]) public keepRecord;
-
     address payable public immutable _owner;
 
     address payable public  _buyer;
@@ -21,7 +21,8 @@ contract ProductAgrement{
 
     Product[] public ProductList;
 
-    uint public amount;
+    uint totalAmount = 1 ether;
+    uint public amount = 0;
 
 
     enum State {UnLocked ,Locked }
@@ -41,6 +42,7 @@ contract ProductAgrement{
 
     modifier checkState(State state)
     {
+       
         if(state != _state){
             revert InvalidState();
         }
@@ -54,7 +56,7 @@ contract ProductAgrement{
     modifier onlyBuyer()
     {
         
-        if(msg.sender != _buyer){
+        if(msg.sender != _buyer && msg.sender != _owner){
             
             revert OnlyBuyer();
         }
@@ -65,8 +67,8 @@ contract ProductAgrement{
     error CheckBalance();
 
     modifier checkBalance()
-    {
-        if(msg.value < amount){
+    { 
+        if(msg.value < (amount * totalAmount)){
             revert CheckBalance();
         }
         _;
@@ -74,8 +76,8 @@ contract ProductAgrement{
 
 
     function addToCart(string memory name,uint id,uint price,uint quantity) external checkState(State.UnLocked){
-        amount += price;
-        ProductList.push(Product(id,name,price,quantity,msg.sender));
+        amount += price ;
+        ProductList.push(Product(id,name,price ,quantity,msg.sender));
         keepRecord[msg.sender].push(Product(id,name,price,quantity,msg.sender));
     }
 
@@ -84,13 +86,17 @@ contract ProductAgrement{
         _buyer = payable(msg.sender);
         _state = State.Locked;
     }
+    
+    
+
 
     function payOwner() external onlyBuyer checkBalance checkState(State.Locked) payable {
         _state = State.UnLocked;
         amount = 0 ;
-        _owner.transfer(msg.value);
-       
+
+       bool sent = _owner.send(msg.value);
+       require(sent, "Failed to send Ether");
     }
    
-   
+
 }

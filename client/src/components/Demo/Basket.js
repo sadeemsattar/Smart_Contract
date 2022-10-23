@@ -13,6 +13,7 @@ export default function Basket(props) {
 
   const addToCart = async (e) => {
     console.log(cartItems.length);
+
     for (let i = 0; i < cartItems.length; i++) {
       console.log(contract);
       await contract.methods
@@ -33,22 +34,24 @@ export default function Basket(props) {
     await contract.methods.confirmOrder().call({
       from: accounts[0],
     });
+    console.log(
+      await contract.methods._owner().call({
+        from: accounts[0],
+      })
+    );
   };
 
   const payBil = async (e) => {
+    console.log(totalPrice);
+
+    const result = await contract.methods.payOwner().send({
+      from: accounts[0],
+      value: "1000000000000000000",
+      gas: "3000000",
+    });
+    console.log("Result", result);
     setbtnCheck(false);
     cartItems = [];
-
-    await contract.methods
-      .payOwner()
-      .send({
-        from: accounts[0],
-        value: web3.utils.toWei(totalPrice.toString(), "ether"),
-        gas: "21000",
-      })
-      .then(function (result, error) {
-        console.log("Result", result, error);
-      });
     totalPrice = 0;
   };
 
