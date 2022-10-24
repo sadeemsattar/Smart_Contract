@@ -5,9 +5,11 @@ import Basket from "./components/Demo/Basket";
 import data from "./data";
 
 import { useState } from "react";
+
 function App() {
   const { products } = data;
   const [cartItems, setCartItems] = useState([]);
+
   const onAdd = (product) => {
     const exist = cartItems.find((x) => x.id === product.id);
     if (exist) {
@@ -42,6 +44,7 @@ function App() {
             cartItems={cartItems}
             onAdd={onAdd}
             onRemove={onRemove}
+            setCartItems={setCartItems}
           ></Basket>
         </div>
       </div>

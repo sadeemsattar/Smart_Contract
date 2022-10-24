@@ -1,27 +1,31 @@
 import React, { useState } from "react";
 import useEth from "../../contexts/EthContext/useEth";
 import web3 from "web3";
-
+import "./table.css";
 export default function Basket(props) {
   const {
     state: { contract, accounts },
   } = useEth();
-  let { cartItems, onAdd, onRemove } = props;
+  const { cartItems, setCartItems, onAdd, onRemove } = props;
   const itemsPrice = cartItems.reduce((a, c) => a + c.qty * c.price, 0);
   const [btnCheck, setbtnCheck] = useState(false);
   let totalPrice = itemsPrice;
+  const [history, setHistory] = useState([]);
 
   const addToCart = async (e) => {
     console.log(cartItems.length);
 
     for (let i = 0; i < cartItems.length; i++) {
+      let date = new Date();
+      let updateDate = date.toLocaleString();
       console.log(contract);
       await contract.methods
         .addToCart(
           cartItems[i].name,
           cartItems[i].id,
           cartItems[i].price * cartItems[i].qty,
-          cartItems[i].qty
+          cartItems[i].qty,
+          updateDate
         )
         .send({
           from: accounts[0],
@@ -31,30 +35,33 @@ export default function Basket(props) {
 
   const confirmOrder = async (e) => {
     setbtnCheck(true);
-    await contract.methods.confirmOrder().call({
+    await contract.methods.confirmOrder().send({
       from: accounts[0],
     });
-    console.log(
-      await contract.methods._owner().call({
-        from: accounts[0],
-      })
-    );
   };
 
   const payBil = async (e) => {
-    console.log(totalPrice);
-
     const result = await contract.methods.payOwner().send({
       from: accounts[0],
-      value: "1000000000000000000",
+      value: web3.utils.toWei(`${totalPrice}`, "ether"),
       gas: "3000000",
     });
     console.log("Result", result);
     setbtnCheck(false);
-    cartItems = [];
+    setCartItems([]);
     totalPrice = 0;
+    console.log(cartItems);
   };
 
+  const getHistory = async () => {
+    const result = await contract.methods.getProductHistory().call({
+      from: accounts[0],
+      value: web3.utils.toWei(`${totalPrice}`, "ether"),
+      gas: "3000000",
+    });
+    console.log("Product History", result);
+    setHistory(result);
+  };
   return (
     <aside className="block col-1">
       <h2>Cart Items</h2>
@@ -107,6 +114,33 @@ export default function Basket(props) {
               <button onClick={payBil}>Pay Owner</button>
             </div>
           </>
+        )}
+      </div>
+      <div>
+        <button onClick={getHistory}> Check History</button>
+        {history.length > 0 ? (
+          <table border="1" className="customers">
+            <thead>
+              <td>Product ID</td>
+              <td>Name</td>
+              <td>Price</td>
+              <td>Quantity</td>
+              <td>Time / Date</td>
+              {/* <td>Buyer ID</td> */}
+            </thead>
+            {history.map((item) => (
+              <tr>
+                <td>{item.id}</td>
+                <td>{item.name}</td>
+                <td>{item.price}</td>
+                <td>{item.quantity}</td>
+                <td>{item.date}</td>
+                {/* <td>{item.Buyer}</td> */}
+              </tr>
+            ))}
+          </table>
+        ) : (
+          ""
         )}
       </div>
     </aside>

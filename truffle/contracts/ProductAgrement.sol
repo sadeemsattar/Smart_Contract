@@ -10,10 +10,13 @@ contract ProductAgrement{
         string name;
         uint price;
         uint quantity;
+        string date;
         address Buyer;
     }
 
     mapping (address => Product[]) public keepRecord;
+
+
     address payable public immutable _owner;
 
     address payable public  _buyer;
@@ -53,7 +56,7 @@ contract ProductAgrement{
      /// Only Valid Buyer Can Call This Function
     error OnlyBuyer();
 
-    modifier onlyBuyer()
+    modifier onlyBuyer
     {
         
         if(msg.sender != _buyer && msg.sender != _owner){
@@ -66,7 +69,7 @@ contract ProductAgrement{
      /// Low Balance 
     error CheckBalance();
 
-    modifier checkBalance()
+    modifier checkBalance
     { 
         if(msg.value < (amount * totalAmount)){
             revert CheckBalance();
@@ -75,10 +78,10 @@ contract ProductAgrement{
     }
 
 
-    function addToCart(string memory name,uint id,uint price,uint quantity) external checkState(State.UnLocked){
+    function addToCart(string memory name,uint id,uint price,uint quantity,string memory date) external checkState(State.UnLocked){
         amount += price ;
-        ProductList.push(Product(id,name,price ,quantity,msg.sender));
-        keepRecord[msg.sender].push(Product(id,name,price,quantity,msg.sender));
+        ProductList.push(Product(id,name,price ,quantity,date,msg.sender));
+        keepRecord[msg.sender].push(Product(id,name,price,quantity,date,msg.sender));
     }
 
 
@@ -90,13 +93,20 @@ contract ProductAgrement{
     
 
 
-    function payOwner() external onlyBuyer checkBalance checkState(State.Locked) payable {
-        _state = State.UnLocked;
+    function payOwner() external  checkState(State.Locked) checkBalance onlyBuyer  payable{
+       bool sent = _owner.send(msg.value);
+       require(sent, "Failed to send Ether");
         amount = 0 ;
+         _state = State.UnLocked;
+    }
 
+    function payBill() public checkState(State.Locked) onlyBuyer payable{
+       require(msg.value < (amount*totalAmount),"Low Balance");
        bool sent = _owner.send(msg.value);
        require(sent, "Failed to send Ether");
     }
    
-
+   function getProductHistory() public view returns(Product[] memory){
+    return keepRecord[msg.sender];
+   }
 }
